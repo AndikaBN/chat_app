@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'login.dart';
 
@@ -9,9 +11,11 @@ class RegisterView extends StatefulWidget {
 }
 
 class _RegisterViewState extends State<RegisterView> {
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   @override
   Widget build(BuildContext context) {
     return Theme(
@@ -68,6 +72,7 @@ class _RegisterViewState extends State<RegisterView> {
                           Expanded(
                             flex: 8,
                             child: Form(
+                              key: _formKey,
                               child: Column(
                                 children: [
                                   TextFormField(
@@ -83,6 +88,15 @@ class _RegisterViewState extends State<RegisterView> {
                                         child: Icon(Icons.person),
                                       ),
                                     ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return "Wajib Isi";
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(
+                                    height: 16.0,
                                   ),
                                   TextFormField(
                                     controller: _emailController,
@@ -97,6 +111,12 @@ class _RegisterViewState extends State<RegisterView> {
                                         child: Icon(Icons.email),
                                       ),
                                     ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return "Wajib Isi";
+                                      }
+                                      return null;
+                                    },
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
@@ -113,11 +133,21 @@ class _RegisterViewState extends State<RegisterView> {
                                           child: Icon(Icons.lock),
                                         ),
                                       ),
+                                      validator: (value) {
+                                        if (value == null || value.isEmpty) {
+                                          return "Wajib Isi";
+                                        }
+                                        return null;
+                                      },
                                     ),
                                   ),
                                   const SizedBox(height: 16.0 / 2),
                                   ElevatedButton(
-                                    onPressed: () {},
+                                    onPressed: () {
+                                      if (_formKey.currentState!.validate()) {
+                                        _register();
+                                      }
+                                    },
                                     child: Text("Sign Up".toUpperCase()),
                                   ),
                                   const SizedBox(height: 16.0),
@@ -166,5 +196,49 @@ class _RegisterViewState extends State<RegisterView> {
         ),
       ),
     );
+  }
+
+  void _register() async {
+    try {
+      final UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      await FirebaseFirestore.instance
+          .collection('user')
+          .doc(userCredential.user!.uid)
+          .set({
+        'name': _usernameController.text,
+        'email': _emailController.text,
+        'password': _passwordController.text,
+      });
+      // ignore: use_build_context_synchronously
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginView()),
+      );
+    } catch (e) {
+      // ignore: use_build_context_synchronously
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text("Register Gagal"),
+            content: Text(
+              e.toString(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text("Ok"),
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 }

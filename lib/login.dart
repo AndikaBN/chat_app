@@ -1,6 +1,8 @@
 // ignore_for_file: camel_case_types, prefer_typing_uninitialized_variables
 
 import 'package:blur/blur.dart';
+import 'package:chat_app/home_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -14,33 +16,11 @@ class LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<LoginView> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   @override
   Widget build(BuildContext context) {
-    /*
-   ------------------------
-   https://capekngoding.com
-   ------------------------
-   Starring:
-   Name: Deny Ocr
-   Youtube: https://www.youtube.com/c/CapekNgoding
-   ------------------------
-   [1] Update pubspec.yaml
-   blur:
-   google_fonts:
-   
-   [2] Import
-   import 'package:blur/blur.dart';
-   import 'package:google_fonts/google_fonts.dart';
-   
-   ------------------------
-   Code generation with snippets can be a good solution for you or it can kill you.
-   A basic understanding of Dart and Flutter is required.
-   Keep it in mind, Our snippet can't generate many files yet.
-   So, all of our snippets are put in one file which is not best practice.
-   You need to do the optimization yourself, and at least you are familiar with using Flutter.
-   ------------------------
-   */
-
     return Theme(
       data: ThemeData(
         primaryColor: Colors.blueGrey,
@@ -111,7 +91,7 @@ class _LoginViewState extends State<LoginView> {
                         ),
                       ),
                       child: Text(
-                        "Crashbook",
+                        "Chat App",
                         style: GoogleFonts.pacifico(
                           color: Colors.white,
                           fontSize: 40.0,
@@ -122,9 +102,11 @@ class _LoginViewState extends State<LoginView> {
                       height: 30.0,
                     ),
                     Form(
+                      key: _formKey,
                       child: Column(
                         children: [
                           TextFormField(
+                            controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
                             cursorColor: Colors.blueGrey,
@@ -138,10 +120,17 @@ class _LoginViewState extends State<LoginView> {
                                 child: Icon(Icons.person),
                               ),
                             ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return "Wajib Diisi";
+                              }
+                              return null;
+                            },
                           ),
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 16.0),
                             child: TextFormField(
+                              controller: _passwordController,
                               textInputAction: TextInputAction.done,
                               obscureText: true,
                               cursorColor: Colors.blueGrey,
@@ -155,13 +144,23 @@ class _LoginViewState extends State<LoginView> {
                                   child: Icon(Icons.lock),
                                 ),
                               ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return "Wajib Diisi";
+                                }
+                                return null;
+                              },
                             ),
                           ),
                           const SizedBox(height: 16.0),
                           Hero(
                             tag: "login_btn",
                             child: ElevatedButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                if (_formKey.currentState!.validate()) {
+                                  _login();
+                                }
+                              },
                               child: Text(
                                 "Login".toUpperCase(),
                               ),
@@ -247,5 +246,40 @@ class _LoginViewState extends State<LoginView> {
         ),
       ),
     );
+  }
+
+  void _login() async {
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      // ignore: use_build_context_synchronously
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
+    } catch (e) {
+      // ignore: use_build_context_synchronously
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text("Login Gagal"),
+            content: Text(
+              e.toString(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text("Ok"),
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 }
